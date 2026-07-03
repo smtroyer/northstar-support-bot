@@ -20,15 +20,17 @@ const ORDER_STATUS: Record<string, string> = {
 
 /**
  * Normalize any user/model-supplied order reference to a bare digit string.
- * Strips "#", whitespace, and any non-digits, then drops leading zeros so
- * "#111", "order 111", " 111 ", and "0111" all resolve to "111".
- * Guards against null/undefined/oversized input and never throws.
+ * Takes the FIRST run of digits (ignoring "#", spaces, and other separators)
+ * and drops leading zeros, so "#111", "order 111", " 111 ", and "0111" all
+ * resolve to "111". Taking the first run rather than deleting every non-digit
+ * avoids concatenating distinct numbers (for example "111-222" -> "111", not
+ * "111222"). Guards against null/undefined/oversized input and never throws.
  */
 export function normalizeOrderNumber(raw: unknown): string {
   if (typeof raw !== 'string' && typeof raw !== 'number') return '';
-  const digits = String(raw).slice(0, 40).replace(/\D/g, '');
-  if (!digits) return '';
-  return digits.replace(/^0+/, '') || '0';
+  const match = String(raw).slice(0, 40).match(/\d+/);
+  if (!match) return '';
+  return match[0].replace(/^0+/, '') || '0';
 }
 
 /** Pure in-memory lookup. No I/O, no injection surface. */
