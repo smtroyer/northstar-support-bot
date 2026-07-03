@@ -2,7 +2,7 @@
 
 A customer support chatbot for **North Star Gear**, a small (fictional) online store that sells outdoor apparel and camping gear. It handles order tracking, returns and exchanges, product recommendations, and handoff to a live agent.
 
-> **Live, testable version:** _[URL added after deploy]_
+> **Live, testable version: https://northstar-support-bot.vercel.app**
 > No API key, account, subscription, or setup required. Open the link and start chatting.
 
 All business data in this project is fictional and fixed. The bot uses only the data provided in the project spec.
