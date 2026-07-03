@@ -11,7 +11,6 @@ interface ChatMsg {
   content: string;
   ui?: boolean; // display-only: never sent to the API
   variant?: Variant; // assistant styling + label
-  showChips?: boolean; // render the quick-reply chips under this message
 }
 
 const GREETING =
@@ -36,7 +35,7 @@ let idSeq = 0;
 const nextId = () => ++idSeq;
 
 function makeGreeting(): ChatMsg {
-  return { id: nextId(), role: 'assistant', content: GREETING, variant: 'bot', ui: true, showChips: true };
+  return { id: nextId(), role: 'assistant', content: GREETING, variant: 'bot', ui: true };
 }
 
 export default function Page() {
@@ -135,7 +134,7 @@ export default function Page() {
     setMode('bot');
     setMessages((prev) => [
       ...prev,
-      { id: nextId(), role: 'assistant', content: RETURN_GREETING, variant: 'bot', ui: true, showChips: true },
+      { id: nextId(), role: 'assistant', content: RETURN_GREETING, variant: 'bot', ui: true },
     ]);
   };
 
@@ -203,14 +202,7 @@ export default function Page() {
         aria-label="Conversation"
       >
         {messages.map((m) => (
-          <div key={m.id}>
-            <MessageRow message={m} />
-            {m.showChips && !isLive && (
-              <div className="mt-3 pl-11">
-                <QuickReplies onPick={handleFlow} disabled={loading} />
-              </div>
-            )}
-          </div>
+          <MessageRow key={m.id} message={m} />
         ))}
         {loading && <TypingRow live={isLive} />}
       </main>
