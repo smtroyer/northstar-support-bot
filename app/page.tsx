@@ -222,6 +222,18 @@ export default function Page() {
             <QuickReplies onPick={handleFlow} disabled={loading} compact />
           </div>
         )}
+        {isLive && (
+          <div className="mb-2.5 flex justify-center">
+            <button
+              type="button"
+              onClick={returnToBot}
+              className="inline-flex items-center gap-2 rounded-full border border-pine-600 bg-pine-700 px-4 py-2 text-[13px] font-semibold text-cream shadow-soft transition hover:bg-pine-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-pine-500/50"
+            >
+              <ReturnGlyph />
+              Return to bot
+            </button>
+          </div>
+        )}
 
         <form
           onSubmit={(e) => {
@@ -418,6 +430,20 @@ function SendGlyph() {
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none">
       <path
         d="M4.5 12h13M12 6.5l6 5.5-6 5.5"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ReturnGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none">
+      <path
+        d="M9 7l-5 5 5 5M4 12h10a5 5 0 0 1 5 5"
         stroke="currentColor"
         strokeWidth="1.9"
         strokeLinecap="round"
