@@ -13,20 +13,47 @@ const MAX_MESSAGES = 20; // cap history sent to the model
 const MAX_MESSAGE_CHARS = 2000; // cap each message length
 const MAX_TOOL_ITERATIONS = 3; // guard against tool-call loops
 
-// --- Best-effort in-memory rate limit (defense-in-depth). ---------------
-// Not distributed; resets on cold start. Real protection is the disabled
-// key + input caps, but this stops trivial hammering within one instance.
+// --- Best-effort in-memory rate limits (defense-in-depth). --------------
+// Not distributed; resets on cold start, so treat these as per-instance
+// speed bumps. The hard cost backstop is the Anthropic console: this app's
+// key must live in a workspace with a monthly spend limit.
 const RL_WINDOW_MS = 60_000;
-const RL_MAX = 30;
+const RL_MAX = 10; // per IP per minute; a human conversation never hits this
+const IP_DAILY_MAX = 40; // per IP per UTC day
+const GLOBAL_DAILY_MAX = 300; // whole demo per UTC day, per warm instance
 const hits = new Map<string, number[]>();
+const dailyByIp = new Map<string, number>();
+let dailyGlobal = 0;
+let dailyKey = '';
 
-function isRateLimited(ip: string): boolean {
+function utcDayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function rollDayIfNeeded(): void {
+  const today = utcDayKey();
+  if (dailyKey !== today) {
+    dailyKey = today;
+    dailyGlobal = 0;
+    dailyByIp.clear();
+  }
+}
+
+type LimitCheck = 'ok' | 'burst' | 'ip_daily' | 'global_daily';
+
+function checkLimits(ip: string): LimitCheck {
+  rollDayIfNeeded();
+  if (dailyGlobal >= GLOBAL_DAILY_MAX) return 'global_daily';
+  if ((dailyByIp.get(ip) || 0) >= IP_DAILY_MAX) return 'ip_daily';
   const now = Date.now();
   const recent = (hits.get(ip) || []).filter((t) => now - t < RL_WINDOW_MS);
   recent.push(now);
   hits.set(ip, recent);
   if (hits.size > 5000) hits.clear(); // crude memory bound
-  return recent.length > RL_MAX;
+  if (recent.length > RL_MAX) return 'burst';
+  dailyGlobal++;
+  dailyByIp.set(ip, (dailyByIp.get(ip) || 0) + 1);
+  return 'ok';
 }
 
 // --- The one tool: exact order lookup. ----------------------------------
@@ -83,9 +110,22 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'local';
-  if (isRateLimited(ip)) {
+  const limit = checkLimits(ip);
+  if (limit === 'burst') {
     return json(
       { reply: "You're sending messages a little quickly. Give me a moment, then try again.", handoff: false },
+      429,
+    );
+  }
+  if (limit === 'ip_daily') {
+    return json(
+      { reply: "You've reached today's limit for this demo. Come back tomorrow and I'll be happy to help again.", handoff: false },
+      429,
+    );
+  }
+  if (limit === 'global_daily') {
+    return json(
+      { reply: 'This demo is resting for the day after a busy stretch. Please check back tomorrow.', handoff: false },
       429,
     );
   }
